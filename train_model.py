@@ -11,7 +11,7 @@ from src.models.train import (
 )
 
 def main():
-    raw_data = pd.read_csv("data/raw/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+    raw_data = pd.read_csv("data/WA_Fn-UseC_-Telco-Customer-Churn.csv")
     df_clean = clean_data(raw_data)
     X_train, X_test, y_train, y_test = split_data(df_clean)
     model                            = build_model()
