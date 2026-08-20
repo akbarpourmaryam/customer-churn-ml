@@ -3,7 +3,7 @@
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from src.features.preprocessing import build_preprocessor
+from src.preprocessing import build_preprocessor
 
 
 def split_data(df_clean):

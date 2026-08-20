@@ -2,9 +2,9 @@
 
 import pandas as pd
 
-from src.cleaning import clean_data
-from src.evaluate import evaluate_model
-from src.train import (
+from src.data.cleaning import clean_data
+from src.models.evaluate import evaluate_model
+from src.models.train import (
     build_model,
     split_data,
     train_model
