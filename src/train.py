@@ -1,6 +1,7 @@
 """Train the Telco Customer Churn model."""
 
-from sklearn.linear_model import LogisticRegression
+# from sklearn.linear_model import LogisticRegression
+from sklearn.dummy import DummyClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from src.preprocessing import build_preprocessor
@@ -27,7 +28,7 @@ def build_model() -> Pipeline:
     model = Pipeline(
         steps=[
             ("preprocessor", build_preprocessor()),
-            ("classifier", LogisticRegression(max_iter=1000)),
+            ("classifier", DummyClassifier(strategy="most_frequent", random_state=42)),
               ])
     return model
 
