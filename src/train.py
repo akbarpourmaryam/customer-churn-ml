@@ -35,7 +35,7 @@ def build_model() -> Pipeline:
 
 def train_model(model, X_train, y_train):
     """Fit the model on the training data."""
-
+    
     model.fit(X_train, y_train)
 
     return model
