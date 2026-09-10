@@ -20,9 +20,9 @@ def evaluate_model(model, X_test, y_test):
     metrics = {
         "accuracy"          : accuracy_score(y_test, y_pred),
         "balanced_accuracy" : balanced_accuracy_score(y_test, y_pred),
-        "precision"         : precision_score(y_test, y_pred),
-        "recall"            : recall_score(y_test, y_pred),
-        "f1"                : f1_score(y_test, y_pred),
+        "precision"         : precision_score(y_test, y_pred, zero_division=0),
+        "recall"            : recall_score(y_test, y_pred, zero_division=0),
+        "f1"                : f1_score(y_test, y_pred, zero_division=0),
         "roc_auc"           : roc_auc_score(y_test, y_prob),
         "pr_auc"            : average_precision_score(y_test, y_prob),
         "positive_rate"     : y_test.mean(),
