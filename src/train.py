@@ -1,41 +1,87 @@
-"""Train the Telco Customer Churn model."""
+"""Model construction, data splitting, and hyperparameter optimization."""
 
-# from sklearn.linear_model import LogisticRegression
+from copy import deepcopy
+
 from sklearn.dummy import DummyClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, train_test_split
 from sklearn.pipeline import Pipeline
+from xgboost import XGBClassifier
+
 from src.preprocessing import build_preprocessor
 
 
-def split_data(df_clean):
-    """Split cleaned data into training and test sets."""
+MODEL_NAMES = ("dummy", "logistic_regression", "random_forest", "xgboost")
 
-    X = df_clean.drop(columns=["Churn"])
-    y = df_clean["Churn"].map({"No": 0, "Yes": 1})
-    X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2, #test_size is set to 0.2, meaning that 20% of the data will be used for testing and 80% for training.
-        random_state=42, #random_state is set to 42 to ensure reproducibility of the train-test split. This means that every time we run the code, we will get the same split of data into training and test sets.
-        stratify=y, #since our data is imbalanced, we want to make sure that the train and test sets have the same proportion of churned customers as the original dataset.
+
+def split_data(data, test_size=0.2, validation_size=0.2, random_state=42):
+    """Create stratified train, validation, and final test partitions."""
+
+    X = data.drop(columns=["Churn"])
+    y = data["Churn"].map({"No": 0, "Yes": 1})
+    X_train_validation, X_test, y_train_validation, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=random_state, stratify=y
     )
-    return X_train, X_test, y_train, y_test
+    relative_validation_size = validation_size / (1 - test_size)
+    X_train, X_validation, y_train, y_validation = train_test_split(
+        X_train_validation,
+        y_train_validation,
+        test_size=relative_validation_size,
+        random_state=random_state,
+        stratify=y_train_validation,
+    )
+    return X_train, X_validation, X_test, y_train, y_validation, y_test
 
 
-def build_model() -> Pipeline:
-    """Build the preprocessing and modeling pipeline."""
+def build_model(model_name, random_state=42, imbalance_ratio=1.0):
+    """Build a complete feature-processing and classification pipeline."""
 
-    model = Pipeline(
-        steps=[
-            ("preprocessor", build_preprocessor()),
-            ("classifier", DummyClassifier(strategy="most_frequent", random_state=42)),
-              ])
-    return model
+    classifiers = {
+        "dummy": DummyClassifier(strategy="most_frequent", random_state=random_state),
+        "logistic_regression": LogisticRegression(max_iter=2_000, random_state=random_state),
+        "random_forest": RandomForestClassifier(
+            n_estimators=300, random_state=random_state, n_jobs=1
+        ),
+        "xgboost": XGBClassifier(
+            objective="binary:logistic",
+            eval_metric="logloss",
+            random_state=random_state,
+            n_jobs=1,
+            scale_pos_weight=imbalance_ratio,
+        ),
+    }
+    if model_name not in classifiers:
+        raise ValueError(f"Unknown model {model_name!r}. Choose from {list(classifiers)}.")
+    return Pipeline(
+        steps=[("preprocessor", build_preprocessor()), ("classifier", classifiers[model_name])]
+    )
 
 
-def train_model(model, X_train, y_train):
-    """Fit the model on the training data."""
+def build_models(random_state=42, imbalance_ratio=1.0):
+    """Build every required baseline and candidate model."""
 
-    model.fit(X_train, y_train)
+    return {
+        name: build_model(name, random_state, imbalance_ratio)
+        for name in MODEL_NAMES
+    }
 
-    return model
+
+def tune_model(model_name, model, X_train, y_train, model_config, cv_folds=5, random_state=42):
+    """Tune one pipeline with stratified cross-validation."""
+
+    parameter_grid = deepcopy(model_config.get("parameters", {}))
+    if model_name == "dummy" or not parameter_grid:
+        return model.fit(X_train, y_train), {}, None
+    splitter = StratifiedKFold(n_splits=cv_folds, shuffle=True, random_state=random_state)
+    search = GridSearchCV(
+        model,
+        parameter_grid,
+        scoring=model_config.get("scoring", "average_precision"),
+        cv=splitter,
+        n_jobs=1,
+        refit=True,
+        return_train_score=False,
+    )
+    search.fit(X_train, y_train)
+    return search.best_estimator_, search.best_params_, float(search.best_score_)
