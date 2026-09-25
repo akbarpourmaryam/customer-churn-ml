@@ -1,0 +1,38 @@
+{
+  "model_name": "xgboost",
+  "model_version": "20260925T183851Z-a1bc5f6d",
+  "created_at_utc": "20260925T183851Z",
+  "selected_threshold": 0.6,
+  "selection_metric": "pr_auc",
+  "random_seed": 42,
+  "dataset_rows": 7043,
+  "dataset_sha256": "88be4b93fbe0cc83421af1c503794c97c342eca914c1576db7c276e61d61358a",
+  "git_commit": "a1bc5f6d0b0b42d363a6895cd14ac1126316a58e",
+  "best_parameters": {
+    "classifier__colsample_bytree": 0.8,
+    "classifier__learning_rate": 0.03,
+    "classifier__max_depth": 3,
+    "classifier__n_estimators": 200,
+    "classifier__subsample": 0.8
+  },
+  "test_metrics": {
+    "accuracy": 0.7764371894960965,
+    "balanced_accuracy": 0.7556149732620321,
+    "precision": 0.5623678646934461,
+    "recall": 0.7112299465240641,
+    "f1": 0.628099173553719,
+    "roc_auc": 0.84701490609419,
+    "pr_auc": 0.6655466545274585,
+    "positive_rate": 0.2654364797728886
+  },
+  "test_confusion_matrix": [
+    [
+      828,
+      207
+    ],
+    [
+      108,
+      266
+    ]
+  ]
+}

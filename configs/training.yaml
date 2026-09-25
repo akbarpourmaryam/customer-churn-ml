@@ -1,0 +1,46 @@
+random_seed: 42
+
+paths:
+  data_path: data/WA_Fn-UseC_-Telco-Customer-Churn.csv
+  artifacts_dir: artifacts
+  reports_dir: reports
+  mlruns_dir: mlruns
+
+data_split:
+  train: 0.60
+  validation: 0.20
+  test: 0.20
+
+evaluation:
+  cv_folds: 5
+  selection_metric: pr_auc
+  threshold_metric: f1
+  thresholds: [0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60]
+
+mlflow:
+  experiment_name: customer-churn-classification
+
+models:
+  dummy:
+    scoring: average_precision
+    parameters: {}
+  logistic_regression:
+    scoring: average_precision
+    parameters:
+      classifier__C: [0.1, 1.0, 10.0]
+      classifier__class_weight: [null, balanced]
+  random_forest:
+    scoring: average_precision
+    parameters:
+      classifier__n_estimators: [200]
+      classifier__max_depth: [8, null]
+      classifier__min_samples_leaf: [1, 4]
+      classifier__class_weight: [balanced]
+  xgboost:
+    scoring: average_precision
+    parameters:
+      classifier__n_estimators: [200]
+      classifier__max_depth: [3, 5]
+      classifier__learning_rate: [0.03, 0.08]
+      classifier__subsample: [0.8]
+      classifier__colsample_bytree: [0.8]

@@ -4,5 +4,7 @@ __pycache__/
 .ipynb_checkpoints/
 *.egg-info/
 artifacts/
+mlruns/
+mlflow.db
 models/*.joblib
 models/*.pkl

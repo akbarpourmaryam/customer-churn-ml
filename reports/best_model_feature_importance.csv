@@ -1,0 +1,36 @@
+feature,importance,absolute_importance,type
+categorical__Contract_Two year,0.20530476,0.20530476,feature_importance
+categorical__Contract_One year,0.16666725,0.16666725,feature_importance
+categorical__InternetService_Fiber optic,0.116959326,0.116959326,feature_importance
+categorical__OnlineSecurity_No internet service,0.071409374,0.071409374,feature_importance
+categorical__InternetService_No,0.052733283,0.052733283,feature_importance
+categorical__PaymentMethod_Electronic check,0.051213875,0.051213875,feature_importance
+numeric__tenure,0.045561563,0.045561563,feature_importance
+categorical__OnlineBackup_No internet service,0.03636247,0.03636247,feature_importance
+categorical__StreamingMovies_Yes,0.028196461,0.028196461,feature_importance
+categorical__PaperlessBilling_Yes,0.023660818,0.023660818,feature_importance
+categorical__OnlineSecurity_Yes,0.019550912,0.019550912,feature_importance
+categorical__TenureGroup_61+,0.018133868,0.018133868,feature_importance
+numeric__TotalCharges,0.015522162,0.015522162,feature_importance
+categorical__StreamingTV_Yes,0.013423612,0.013423612,feature_importance
+categorical__TechSupport_Yes,0.011836917,0.011836917,feature_importance
+numeric__MonthlyCharges,0.010996592,0.010996592,feature_importance
+categorical__MultipleLines_Yes,0.010582759,0.010582759,feature_importance
+categorical__MultipleLines_No phone service,0.010389568,0.010389568,feature_importance
+categorical__PhoneService_Yes,0.009635802,0.009635802,feature_importance
+categorical__OnlineBackup_Yes,0.009246945,0.009246945,feature_importance
+categorical__Dependents_Yes,0.00878659,0.00878659,feature_importance
+categorical__gender_Male,0.008638884,0.008638884,feature_importance
+binary__SeniorCitizen,0.008555528,0.008555528,feature_importance
+categorical__TenureGroup_13-24,0.008264649,0.008264649,feature_importance
+numeric__TotalServices,0.008031782,0.008031782,feature_importance
+categorical__PaymentMethod_Mailed check,0.007088959,0.007088959,feature_importance
+categorical__TenureGroup_25-48,0.006087958,0.006087958,feature_importance
+categorical__PaymentMethod_Credit card (automatic),0.005707321,0.005707321,feature_importance
+categorical__TenureGroup_49-60,0.0048090992,0.0048090992,feature_importance
+categorical__Partner_Yes,0.0040076356,0.0040076356,feature_importance
+categorical__DeviceProtection_Yes,0.002633271,0.002633271,feature_importance
+categorical__StreamingMovies_No internet service,0.0,0.0,feature_importance
+categorical__StreamingTV_No internet service,0.0,0.0,feature_importance
+categorical__TechSupport_No internet service,0.0,0.0,feature_importance
+categorical__DeviceProtection_No internet service,0.0,0.0,feature_importance

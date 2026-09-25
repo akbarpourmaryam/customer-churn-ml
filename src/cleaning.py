@@ -3,24 +3,24 @@
 import pandas as pd
 
 from src.preprocessing import (
-    BINARY_NUMERIC_FEATURES,
-    CATEGORICAL_FEATURES,
-    NUMERIC_FEATURES,
+    RAW_BINARY_FEATURES,
+    RAW_CATEGORICAL_FEATURES,
+    RAW_NUMERIC_FEATURES,
 )
 
 
 ID_COLUMN = "customerID"
 TARGET_COLUMN = "Churn"
-REQUIRED_COLUMNS = {
+FEATURE_COLUMNS = {
     ID_COLUMN,
-    TARGET_COLUMN,
-    *NUMERIC_FEATURES,
-    *BINARY_NUMERIC_FEATURES,
-    *CATEGORICAL_FEATURES,
+    *RAW_NUMERIC_FEATURES,
+    *RAW_BINARY_FEATURES,
+    *RAW_CATEGORICAL_FEATURES,
 }
+REQUIRED_COLUMNS = {TARGET_COLUMN, *FEATURE_COLUMNS}
 
 
-def validate_schema(raw_data: pd.DataFrame) -> None:
+def validate_schema(raw_data: pd.DataFrame, require_target: bool = True) -> None:
     """Validate the table shape and required columns before accessing them."""
 
     if not isinstance(raw_data, pd.DataFrame):
@@ -28,14 +28,15 @@ def validate_schema(raw_data: pd.DataFrame) -> None:
     if raw_data.empty:
         raise ValueError("Training data must contain at least one row.")
 
-    missing_columns = REQUIRED_COLUMNS - set(raw_data.columns)
+    required_columns = REQUIRED_COLUMNS if require_target else FEATURE_COLUMNS
+    missing_columns = required_columns - set(raw_data.columns)
     if missing_columns:
         raise ValueError(f"Missing required columns: {sorted(missing_columns)}")
 
-def validate_data(raw_data: pd.DataFrame) -> None:
+def validate_data(raw_data: pd.DataFrame, require_target: bool = True) -> None:
     """Validate assumptions about the raw dataset."""
 
-    validate_schema(raw_data)
+    validate_schema(raw_data, require_target=require_target)
     
     # customerID should exist for every customer.
     if raw_data[ID_COLUMN].isna().any() or raw_data[ID_COLUMN].eq("").any():
@@ -60,7 +61,7 @@ def validate_data(raw_data: pd.DataFrame) -> None:
 
     # TotalCharges is handled after conversion because blank values are valid
     # for brand-new customers whose tenure is zero.
-    for column in ["tenure", "MonthlyCharges", *CATEGORICAL_FEATURES]:
+    for column in ["tenure", "MonthlyCharges", *RAW_CATEGORICAL_FEATURES]:
         if raw_data[column].isna().any():
             raise ValueError(f"{column} contains missing values.")
 
@@ -70,7 +71,7 @@ def validate_data(raw_data: pd.DataFrame) -> None:
             raise ValueError(f"{column} must contain only numeric values.")
 
     empty_categorical_columns = [
-        column for column in CATEGORICAL_FEATURES if raw_data[column].eq("").any()
+        column for column in RAW_CATEGORICAL_FEATURES if raw_data[column].eq("").any()
     ]
     if empty_categorical_columns:
         raise ValueError(
@@ -120,3 +121,21 @@ def clean_data(raw_data: pd.DataFrame) -> pd.DataFrame:
         raise ValueError(
             "TotalCharges contains missing or invalid values for customers with tenure greater than 0.")
     return raw_data
+
+
+def clean_prediction_data(raw_data: pd.DataFrame) -> pd.DataFrame:
+    """Clean feature-only data using the same rules as training data."""
+
+    data = raw_data.copy()
+    string_columns = data.select_dtypes(include=["object", "string"]).columns
+    for column in string_columns:
+        data[column] = data[column].map(
+            lambda value: value.strip() if isinstance(value, str) else value
+        )
+    validate_data(data, require_target=False)
+    data["TotalCharges"] = pd.to_numeric(data["TotalCharges"], errors="coerce")
+    new_customer_missing = data["TotalCharges"].isna() & data["tenure"].eq(0)
+    data.loc[new_customer_missing, "TotalCharges"] = 0.0
+    if data["TotalCharges"].isna().any():
+        raise ValueError("TotalCharges contains missing or invalid values.")
+    return data

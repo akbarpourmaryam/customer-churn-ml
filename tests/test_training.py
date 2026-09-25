@@ -1,16 +1,28 @@
-import json
-
-import joblib
+import numpy as np
 import pytest
 
 from src.cleaning import clean_data
-from src.evaluate import evaluate_model
-from src.train import build_model, build_models, split_data, train_model
-from train_model import main
+from src.evaluate import (
+    compare_thresholds,
+    cross_validate_model,
+    evaluate_model,
+    feature_importance_report,
+    select_threshold,
+)
+from src.features import add_features
+from src.train import build_model, build_models, split_data, tune_model
 
 
-def test_build_models_includes_dummy_and_logistic_regression():
-    assert set(build_models()) == {"dummy", "logistic_regression"}
+def test_feature_engineering_adds_expected_features(valid_data):
+    engineered = add_features(valid_data)
+    assert {"TotalServices", "TenureGroup"}.issubset(engineered.columns)
+    assert engineered["TotalServices"].between(0, 8).all()
+
+
+def test_build_models_includes_all_required_candidates():
+    assert set(build_models()) == {
+        "dummy", "logistic_regression", "random_forest", "xgboost"
+    }
 
 
 def test_build_model_rejects_unknown_name():
@@ -20,28 +32,56 @@ def test_build_model_rejects_unknown_name():
 
 def test_split_is_stratified_and_model_can_be_evaluated(valid_data):
     cleaned = clean_data(valid_data)
-    X_train, X_test, y_train, y_test = split_data(cleaned)
-    model = train_model(build_model("logistic_regression"), X_train, y_train)
+    X_train, X_validation, X_test, y_train, y_validation, y_test = split_data(cleaned)
+    model = build_model("logistic_regression").fit(X_train, y_train)
     metrics, matrix = evaluate_model(model, X_test, y_test)
 
-    assert set(y_train) == {0, 1}
-    assert set(y_test) == {0, 1}
+    assert all(set(part) == {0, 1} for part in (y_train, y_validation, y_test))
+    assert len(X_train) + len(X_validation) + len(X_test) == len(cleaned)
     assert 0.0 <= metrics["roc_auc"] <= 1.0
     assert matrix.shape == (2, 2)
 
 
-def test_main_saves_loadable_models_and_metrics(valid_data, tmp_path):
-    data_path = tmp_path / "input.csv"
-    artifacts_dir = tmp_path / "output"
-    valid_data.to_csv(data_path, index=False)
+def test_tune_model_returns_best_estimator(valid_data):
+    cleaned = clean_data(valid_data)
+    X_train, _, _, y_train, _, _ = split_data(cleaned)
+    fitted, parameters, score = tune_model(
+        "logistic_regression",
+        build_model("logistic_regression"),
+        X_train,
+        y_train,
+        {"scoring": "average_precision", "parameters": {"classifier__C": [0.1, 1.0]}},
+        cv_folds=2,
+    )
+    assert parameters["classifier__C"] in {0.1, 1.0}
+    assert 0 <= score <= 1
+    assert hasattr(fitted, "predict_proba")
 
-    results = main(data_path=data_path, artifacts_dir=artifacts_dir)
 
-    assert set(results) == {"dummy", "logistic_regression"}
-    for model_name in results:
-        model_path = artifacts_dir / "models" / f"{model_name}.joblib"
-        metrics_path = artifacts_dir / "metrics" / f"{model_name}.json"
-        assert hasattr(joblib.load(model_path), "predict")
-        saved_metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
-        assert saved_metrics["model"] == model_name
-        assert len(saved_metrics["confusion_matrix"]) == 2
+def test_cross_validation_returns_metrics_and_oof_probabilities(valid_data):
+    cleaned = clean_data(valid_data)
+    X_train, _, _, y_train, _, _ = split_data(cleaned)
+    summary, probabilities = cross_validate_model(
+        build_model("logistic_regression"), X_train, y_train, n_splits=2
+    )
+    assert set(summary["roc_auc"]) == {"mean", "std"}
+    assert len(probabilities) == len(y_train)
+    assert np.all((probabilities >= 0) & (probabilities <= 1))
+
+
+def test_threshold_comparison_and_selection():
+    y_true = np.array([0, 0, 1, 1])
+    probabilities = np.array([0.1, 0.4, 0.45, 0.9])
+    comparison = compare_thresholds(y_true, probabilities, thresholds=[0.3, 0.5])
+    assert list(comparison["threshold"]) == [0.3, 0.5]
+    assert select_threshold(comparison) == 0.3
+    assert comparison.loc[0, "customers_contacted"] == 3
+
+
+def test_feature_importance_is_available_for_logistic_regression(valid_data):
+    cleaned = clean_data(valid_data)
+    X_train, _, _, y_train, _, _ = split_data(cleaned)
+    model = build_model("logistic_regression").fit(X_train, y_train)
+    report = feature_importance_report(model)
+    assert not report.empty
+    assert report["absolute_importance"].is_monotonic_decreasing
